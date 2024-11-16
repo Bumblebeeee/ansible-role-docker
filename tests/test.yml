@@ -1,0 +1,11 @@
+- hosts: all
+  become: yes
+  tasks:
+    - debug:
+        msg: "It works!"
+  roles:
+    - role: ansible-role-docker
+      vars:
+        docker_user:
+          - vagrant
+        include_docker_volume_netshare: false

@@ -1,0 +1,3 @@
+- src: git@github.com:Bumblebeeee/ansible-role-docker.git
+  scm: git
+  version: main

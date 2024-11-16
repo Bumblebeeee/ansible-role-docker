@@ -1,0 +1,107 @@
+---
+# tasks file for install_docker
+- name: Ensure Docker APT key directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Add Docker APT key to keyring
+  ansible.builtin.apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+    keyring: /etc/apt/keyrings/docker.gpg
+
+# - name: Add Docker's official GPG key
+#   ansible.builtin.apt_key:
+#     url: https://download.docker.com/linux/ubuntu/gpg
+#     state: absent
+
+# deb [arch={{ ansible_architecture }} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ansible_lsb.codename}} stable
+
+- name: Add cri APT key
+  ansible.builtin.apt_key:
+    url: https://pkgs.k8s.io/addons:/cri-o:/stable:/{{ crio.version }}/deb/Release.key
+    state: present
+    keyring: /etc/apt/keyrings/cri-o-apt-keyring.gpg
+  become: yes
+
+- name: Set permissions on cri APT keyring
+  ansible.builtin.file:
+    path: /etc/apt/keyrings/cri-o-apt-keyring.gpg
+    mode: '0644'
+
+- name: Set up cri repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/stable:/{{ crio.version }}/deb/ /"
+    state: present
+
+- name: Set up the stable repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ansible_lsb.codename}} stable"
+    state: present
+
+- name: Install packages to allow apt to use a repository over HTTPS
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  apt:
+    name: "{{ pre_packages }}"
+    state: present
+    update_cache: yes
+
+- name: Install the latest version of Docker CE and containerd
+  apt:
+    name: "{{ packages }}"
+    state: present
+    update_cache: yes
+
+- name: Grant Non-Root User Permission
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: docker
+    append: yes
+  loop: "{{ docker_user }}"
+
+- name: Modify config.toml to enable CRI plugin
+  lineinfile:
+    path: /etc/containerd/config.toml
+    regexp: '^disabled_plugins = \[.*"cri".*\]'
+    line: 'disabled_plugins = []'
+    state: present
+  notify: restart containerd
+
+- name: Config cri-o
+  template:
+    src: "20-cgroup-manager.j2"
+    dest: "/etc/crio/crio.conf.d"
+- name: restart crio
+  service: name=crio state=restarted
+
+- name: Download docker-volume-netshare Plugin
+  get_url:
+    url: https://github.com/ContainX/docker-volume-netshare/releases/download/v0.36/docker-volume-netshare_0.36_amd64.deb
+    dest: /tmp/docker-volume-netshare_0.36_amd64.deb
+  when: include_docker_volume_netshare
+
+- name: Install docker-volume-netshare Plugin
+  apt:
+    deb: /tmp/docker-volume-netshare_0.36_amd64.deb
+  when: include_docker_volume_netshare
+
+- name: Copying over docker-volume-netshare.service using docker-volume-netshare.service.j2 template
+  template:
+    src: docker-volume-netshare.service.j2
+    dest: "/lib/systemd/system/docker-volume-netshare.service"
+    owner: root
+    group: root
+    mode: 0644
+  when: include_docker_volume_netshare
+
+- name: Starting service
+  systemd:
+    daemon_reload: yes
+    name: docker-volume-netshare
+    state: restarted
+  when: include_docker_volume_netshare
+
+#docker plugin install --grant-all-permissions vieux/sshfs
