@@ -24,7 +24,7 @@
     url: https://pkgs.k8s.io/addons:/cri-o:/stable:/{{ crio.version }}/deb/Release.key
     state: present
     keyring: /etc/apt/keyrings/cri-o-apt-keyring.gpg
-  become: yes
+  become: true
 
 - name: Set permissions on cri APT keyring
   ansible.builtin.file:
@@ -74,8 +74,7 @@
   template:
     src: "20-cgroup-manager.j2"
     dest: "/etc/crio/crio.conf.d"
-- name: restart crio
-  service: name=crio state=restarted
+  notify: restart crio
 
 - name: Download docker-volume-netshare Plugin
   get_url:

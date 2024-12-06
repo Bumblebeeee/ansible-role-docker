@@ -2,3 +2,7 @@
 # handlers file for install-docker
 - name: restart containerd
   service: name=containerd state=restarted
+
+- name: restart crio
+  service: name=crio state=restarted
+  listen: restart crio

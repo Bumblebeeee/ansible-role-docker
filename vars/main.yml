@@ -1,19 +1,2 @@
 ---
 # vars file for install-docker
-pre_packages:
-  - apt-transport-https
-  - ca-certificates
-  - curl
-  - gnupg-agent
-  - software-properties-common
-
-packages:
-  - docker-ce
-  - docker-ce-cli
-  - containerd.io
-  - cri-o
-
-docker_volume_netshare_type: nfs
-docker_volume_netshare_params: ""
-crio:
-  version: "v1.31"
