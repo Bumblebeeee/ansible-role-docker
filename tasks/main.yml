@@ -16,7 +16,7 @@
   set_fact:
     kubernetes_repo_version: "{{ (kubernetes_version.content.split('.')[:2]) | join('.') }}"
 
-- name: Run basic role
+- name: Install container packages
   ansible.builtin.include_role:
     name: ansible-role-basic
   vars:
