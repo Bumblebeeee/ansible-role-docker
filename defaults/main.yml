@@ -11,18 +11,19 @@ container:
     - packages:
       - docker-ce
       - docker-ce-cli
+      - containerd.io
       source:
         repo: "deb [signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_facts['lsb']['codename'] }} stable"
         keyring:
           source: https://download.docker.com/linux/ubuntu/gpg
           target: /etc/apt/keyrings/docker.gpg
-    - containerd.io
     - packages:
       - cri-o
       source:
-        repo: "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/stable:/{{ kubernetes_repo_version }}/deb/ /"
-        keyring: https://pkgs.k8s.io/addons:/cri-o:/stable:/{{ kubernetes_repo_version }}/deb/Release.key
-        keyring_target: /etc/apt/keyrings/cri-o-apt-keyring.gpg
+        repo: "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://download.opensuse.org/repositories/isv:/cri-o:/stable:/{{ kubernetes_repo_version }}/deb/ /"
+        keyring: 
+          source: https://download.opensuse.org/repositories/isv:/cri-o:/stable:/{{ kubernetes_repo_version }}/deb/Release.key
+          target: /etc/apt/keyrings/cri-o-apt-keyring.gpg
     - packages:
       - conntrack
 
