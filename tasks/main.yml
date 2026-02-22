@@ -1,59 +1,26 @@
 ---
 # tasks file for install_docker
-- name: Ensure Docker APT key directory exists
-  ansible.builtin.file:
-    path: /etc/apt/keyrings
-    state: directory
-    mode: '0755'
-
-- name: Add Docker APT key to keyring
-  ansible.builtin.apt_key:
-    url: https://download.docker.com/linux/ubuntu/gpg
-    state: present
-    keyring: /etc/apt/keyrings/docker.gpg
-
 # - name: Add Docker's official GPG key
 #   ansible.builtin.apt_key:
 #     url: https://download.docker.com/linux/ubuntu/gpg
 #     state: absent
 
 # deb [arch={{ ansible_architecture }} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ansible_lsb.codename}} stable
+- name: Get latest stable Kubernetes version
+  uri:
+    url: https://dl.k8s.io/release/stable.txt
+    return_content: yes
+  register: kubernetes_version
 
-- name: Add cri APT key
-  ansible.builtin.apt_key:
-    url: https://pkgs.k8s.io/addons:/cri-o:/stable:/{{ crio.version }}/deb/Release.key
-    state: present
-    keyring: /etc/apt/keyrings/cri-o-apt-keyring.gpg
-  become: true
+- name: Set kubernetes_repo_version via split
+  set_fact:
+    kubernetes_repo_version: "{{ (kubernetes_version.content.split('.')[:2]) | join('.') }}"
 
-- name: Set permissions on cri APT keyring
-  ansible.builtin.file:
-    path: /etc/apt/keyrings/cri-o-apt-keyring.gpg
-    mode: '0644'
-
-- name: Set up cri repository
-  ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.io/addons:/cri-o:/stable:/{{ crio.version }}/deb/ /"
-    state: present
-
-- name: Set up the stable repository
-  ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ansible_lsb.codename}} stable"
-    state: present
-
-- name: Install packages to allow apt to use a repository over HTTPS
-  environment:
-    DEBIAN_FRONTEND: noninteractive
-  apt:
-    name: "{{ pre_packages }}"
-    state: present
-    update_cache: yes
-
-- name: Install the latest version of Docker CE and containerd
-  apt:
-    name: "{{ packages }}"
-    state: present
-    update_cache: yes
+- name: Run basic role
+  ansible.builtin.include_role:
+    name: ansible-role-basic
+  vars:
+    base: "{{ container }}"
 
 - name: Grant Non-Root User Permission
   ansible.builtin.user:
